@@ -22,10 +22,8 @@
   --muted: #666; /* 次要文字色 */
   --accent: #f0f0f0; /* 辅助色，用于分隔线与背景 */
   --link-color: #3e6a91; /* 链接与高亮色 */
-  /* 导航栏背景透明度，可调以改变模糊效果 */
-  --nav-bg: rgba(255, 255, 255, 0.85);
-  /* 导航栏高度（影响页面顶部间距），调整时注意同步检查 header 间距 */
-  --nav-height: 70px;
+  --nav-bg: rgba(200, 200, 200, 0.3); /* 导航栏背景透明度，可调以改变模糊效果 */
+  --nav-height: 80px; /* 导航栏高度（影响页面顶部间距），调整时注意同步检查 header 间距 */
 }
 
 /* 暗黑模式：兼顾可读性与厚重感 */
@@ -35,7 +33,7 @@
   --muted: #a1aab2;     
   --accent: #2d3135;    
   --link-color: #82b1ff; 
-  --nav-bg: rgba(26, 28, 30, 0.9);
+  --nav-bg: rgba(64, 64, 64, 0.5);
 }
 
 * { box-sizing: border-box; }
@@ -52,9 +50,13 @@ nav {
   background: var(--nav-bg); 
   backdrop-filter: blur(20px) saturate(180%); 
   -webkit-backdrop-filter: blur(20px) saturate(180%);
-  z-index: 1000; transition: background 0.4s ease;
+  z-index: 1000; transition: background 0.4s ease, box-shadow 0.4s ease;
   display: flex; justify-content: center; align-items: center;
   border-bottom: 1px solid var(--accent);
+}
+
+nav.scrolled {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .nav-container {
@@ -138,7 +140,7 @@ h3.featured-header i { color: var(--link-color); font-size: 1.1rem; }
   border-radius: 4px; margin-left: 10px; vertical-align: middle;
 }
 
-.pub { margin-bottom: 28px; padding: 12px 0; transition: all 0.3s ease; }
+.pub { margin-bottom: 28px; padding: 12px 0; transition: all 0.5s ease; }
 .featured-list .pub:hover {
   transform: translateX(8px);
   background: linear-gradient(to right, var(--accent), transparent);
@@ -328,7 +330,7 @@ h3.featured-header i { color: var(--link-color); font-size: 1.1rem; }
       <h3>All Publications</h3>
       <div id="loading-status" style="margin-bottom: 10px; color:var(--muted)"></div>
       <div id="timeline" class="timeline"></div>
-      <div id="full-list" style="min-height: 500px;"></div>
+      <div id="full-list" style="min-height: 500px; transition: all 1s ease;"></div>
     </div>
   </section>
 </div>
@@ -440,6 +442,25 @@ async function load() {
     p.authors = highlightAuthors(await fetchAuthors(p.doi));
     selectedBox.innerHTML += createPubHTML(p, false);
   }
+  const pubsElements = selectedBox.querySelectorAll('.pub');
+  pubsElements.forEach(pub => {
+    pub.style.transform = 'translateX(50%)';
+    pub.style.opacity = '0';
+  });
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        pubsElements.forEach((pub, index) => {
+          setTimeout(() => {
+            pub.style.transform = 'translateX(0)';
+            pub.style.opacity = '1';
+          }, index * 100);
+        });
+        observer.unobserve(entry.target);
+      }
+    });
+  });
+  observer.observe(document.getElementById('publications'));
 }
 
 async function toggleFull() {
@@ -456,7 +477,7 @@ async function toggleFull() {
 
 async function fetchAllAuthorsOnce() {
   const status = document.getElementById("loading-status");
-  status.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Loading metadata...';
+  status.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Connecting to Crossref...';
   const tasks = pubs.filter(p => !p.authors).map(async p => {
     const raw = await fetchAuthors(p.doi);
     p.authors = highlightAuthors(raw);
@@ -469,6 +490,15 @@ function renderList(filterYear) {
   const box = document.getElementById("full-list");
   const filtered = pubs.filter(p => !filterYear || p.year === filterYear);
   box.innerHTML = filtered.map(p => createPubHTML(p, true)).join("");
+  const pubsElements = box.querySelectorAll('.pub');
+  pubsElements.forEach((pub, index) => {
+    pub.style.transform = 'translateX(50%)';
+    pub.style.opacity = '0';
+    setTimeout(() => {
+      pub.style.transform = 'translateX(0)';
+      pub.style.opacity = '1';
+    }, index * 100);
+  });
 }
 
 function renderTimeline() {
