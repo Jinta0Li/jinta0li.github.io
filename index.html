@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  说明：个人主页（单页），展示个人信息与发表列表。
+  可维护提示：
+    - 主要可编辑区域为带 id 的 section（"research","experience","education","publications"）。
+    - 全局颜色和间距位于 CSS 的 :root 变量，优先在此处微调主题样式。
+    - 发表数据来源在脚本顶部的 `ORCID_ID`，特别是 FEATURED_DOIS 可用于高亮指定 DOI。
+    - 增删经历/教育条目时建议复制已有 .item 模板并保持样式类名不变。
+-->
+<head>
+<meta charset="UTF-8">
+<title>Jin-Tao Lí / 黎锦涛 </title>  
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+
+<style>
+:root {
+  /* 主题变量 — 在此修改颜色与间距以影响全局外观 */
+  --bg: #ffffff; /* 页面背景色 */
+  --fg: #1a1a1a; /* 主要文字色 */
+  --muted: #666; /* 次要文字色 */
+  --accent: #f0f0f0; /* 辅助色，用于分隔线与背景 */
+  --link-color: #3e6a91; /* 链接与高亮色 */
+  /* 导航栏背景透明度，可调以改变模糊效果 */
+  --nav-bg: rgba(255, 255, 255, 0.85);
+  /* 导航栏高度（影响页面顶部间距），调整时注意同步检查 header 间距 */
+  --nav-height: 70px;
+}
+
+/* 暗黑模式：兼顾可读性与厚重感 */
+[data-theme="dark"] {
+  --bg: #1a1c1e;        
+  --fg: #e8e8e8;   
+  --muted: #a1aab2;     
+  --accent: #2d3135;    
+  --link-color: #82b1ff; 
+  --nav-bg: rgba(26, 28, 30, 0.9);
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: var(--bg); color: var(--fg); line-height: 1.75;
+  transition: background-color 0.4s ease, color 0.4s ease;
+}
+
+/* --- 导航栏 --- */
+nav {
+  position: fixed; top: 0; width: 100%; height: var(--nav-height);
+  background: var(--nav-bg); 
+  backdrop-filter: blur(20px) saturate(180%); 
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  z-index: 1000; transition: background 0.4s ease;
+  display: flex; justify-content: center; align-items: center;
+  border-bottom: 1px solid var(--accent);
+}
+
+.nav-container {
+  width: 100%; max-width: 1100px; padding: 0 24px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+
+.nav-logo {
+  font-size: 1.25rem; font-weight: 700; color: var(--fg);
+  text-decoration: none; display: flex; align-items: center;
+}
+.nav-logo span { font-weight: 600; margin-left: 8px; font-size: 1.1rem; opacity: 0.9; }
+
+.nav-right { display: flex; align-items: center; }
+.nav-links-wrapper { position: relative; display: flex; gap: 25px; align-items: center; }
+
+.nav-link {
+  text-decoration: none; color: var(--fg); 
+  font-size: 1.1rem; /* 导航栏字体大小 */
+  font-weight: 500; opacity: 0.6; 
+  transition: opacity 0.3s ease;
+  display: inline-flex; align-items: center; gap: 8px; 
+  padding: 10px 0; height: var(--nav-height);
+}
+.nav-link i { width: 18px; text-align: center; }
+.nav-link.active { opacity: 1; }
+
+#nav-underline {
+  position: absolute; bottom: 0; 
+  height: 2.5px;
+  background: var(--link-color); transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+}
+
+/* --- 暗黑模式切换 --- */
+.theme-switch {
+  margin-left: 45px; width: 40px; height: 40px;
+  cursor: pointer; opacity: 0.6; transition: 0.3s;
+  display: flex; align-items: center; justify-content: center;
+  position: relative; overflow: hidden;
+}
+.theme-switch:hover { opacity: 1; }
+.theme-switch i { position: absolute; font-size: 1.3rem; transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease; }
+.mode-exit { transform: translateY(-40px) !important; opacity: 0 !important; } 
+.mode-enter { transform: translateY(40px) !important; opacity: 0 !important; }  
+.mode-active { transform: translateY(0); opacity: 1; }
+
+/* --- 容器内容 --- */
+.container { max-width: 800px; margin: auto; padding: 140px 24px 80px; }
+section { margin-bottom: 5rem; scroll-margin-top: 100px; }
+
+header { margin-bottom: 4rem; scroll-margin-top: 150px; }
+h1 { font-size: 2.6rem; margin-bottom: 0.5rem; letter-spacing: -0.02em; }
+h1 span { font-weight: 600; color: var(--fg); opacity: 0.9; }
+
+.subtitle { color: var(--muted); font-size: 1.15rem; margin-bottom: 1.8rem; display: flex; align-items: center; gap: 10px; }
+
+header a {
+  transition: all 0.2s ease !important;
+  display: inline-block;
+}
+header a:hover {
+  color: var(--link-color) !important; 
+  text-decoration: underline !important;
+  text-underline-offset: 4px !important;
+}
+
+h2 { font-size: 1.5rem; font-weight: 600; border-bottom: 1px solid var(--accent); padding-bottom: 12px; margin-bottom: 2rem; }
+
+h3.featured-header, #full-section h3 {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 1.25rem; margin-top: 2rem; color: var(--fg);
+    font-weight: 500; 
+}
+h3.featured-header i { color: var(--link-color); font-size: 1.1rem; }
+
+.featured-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: var(--link-color); color: #fff;
+  font-size: 0.7rem; font-weight: 700; padding: 2px 8px;
+  border-radius: 4px; margin-left: 10px; vertical-align: middle;
+}
+
+.pub { margin-bottom: 28px; padding: 12px 0; transition: all 0.3s ease; }
+.featured-list .pub:hover {
+  transform: translateX(8px);
+  background: linear-gradient(to right, var(--accent), transparent);
+  padding-left: 15px; border-radius: 4px;
+}
+
+.pub-year { font-size: 0.85rem; color: var(--muted); font-weight: 700; margin-bottom: 4px; }
+.pub-title { font-weight: 600; font-size: 1.05rem; margin-bottom: 4px; line-height: 1.4; }
+.pub-authors { font-size: 0.95rem; color: var(--muted); margin-bottom: 2px; }
+.pub-journal { font-style: italic; color: var(--muted); font-size: 0.95rem; }
+.pub-doi a { color: var(--link-color); text-decoration: none; font-size: 0.85rem; opacity: 0.8; transition: 0.2s; }
+.pub-doi a:hover { opacity: 1; text-decoration: underline; }
+
+.timeline { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 30px; }
+.timeline span { 
+  cursor: pointer; color: var(--muted); font-size: 0.85rem; padding: 6px 16px; 
+  border-radius: 30px; border: 1px solid var(--accent); transition: 0.3s;
+}
+.timeline span.active { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+
+.toggle-btn { background: none; border: 1px solid var(--muted); border-radius: 50px; cursor: pointer; font-weight: 600; color: var(--fg); padding: 14px 40px; transition: 0.3s; margin-top: 40px;}
+.toggle-btn:hover { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+
+@media (max-width: 850px) {
+  .nav-logo span { display: none; }
+  .nav-links-wrapper { gap: 12px; }
+  .nav-links-wrapper a span { display: none; }
+}
+</style>
+</head>
+
+<body>
+
+<nav id="main-nav">
+  <div class="nav-container">
+    <a href="#about" class="nav-logo">黎锦涛 <span>/ Jin-Tao Lí</span></a>
+    <div class="nav-right">
+      <div class="nav-links-wrapper">
+        <a href="#about" class="nav-link active"><i class="fa-regular fa-user"></i> <span>About</span></a>
+        <a href="#research" class="nav-link"><i class="fa-solid fa-compass"></i> <span>Research</span></a>
+        <a href="#experience" class="nav-link"><i class="fa-solid fa-briefcase"></i> <span>Experience</span></a>
+        <a href="#education" class="nav-link"><i class="fa-solid fa-graduation-cap"></i> <span>Education</span></a>
+        <a href="#publications" class="nav-link"><i class="fa-regular fa-file-lines"></i> <span>Publications</span></a>
+        <div id="nav-underline"></div>
+      </div>
+      <div class="theme-switch" onclick="toggleTheme()">
+        <i class="fa-solid fa-moon mode-active" id="theme-icon"></i>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<div class="container">
+  <!-- 主内容区：个人简介和链接，以下区域为主要可编辑内容 -->
+  <header id="about">
+    <h1>黎锦涛 <span>/ Jin-Tao Lí</span></h1>
+    <div class="subtitle"><i class="fa-solid fa-university"></i> 博士后 · 复旦大学</div>
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div style="display: flex; align-items: center; color: var(--muted);"><i class="fa-regular fa-envelope" style="width:30px; color:var(--fg)"></i> <a href="mailto:li.jintao@foxmail.com" style="color:var(--muted); text-decoration:none;">Email</a></div>
+        <div style="display: flex; align-items: center; color: var(--muted);"><i class="fa-brands fa-orcid" style="width:30px; color:var(--fg)"></i> <a href="https://orcid.org/0000-0002-7175-741X" target="_blank" style="color:var(--muted); text-decoration:none;">ORCID</a></div>
+        <div style="display: flex; align-items: center; color: var(--muted);"><i class="fa-brands fa-researchgate" style="width:30px; color:var(--fg)"></i> <a href="https://www.researchgate.net/profile/Jin-Tao-Li" target="_blank" style="color:var(--muted); text-decoration:none;">ResearchGate</a></div>
+        <div style="display: flex; align-items: center; color: var(--muted);"><i class="fa-solid fa-graduation-cap" style="width:30px; color:var(--fg)"></i> <a href="https://scholar.google.com/citations?user=-SRvlvgAAAAJ&hl" target="_blank" style="color:var(--muted); text-decoration:none;">Google Scholar</a></div>
+        <div style="display: flex; align-items: center; color: var(--muted);"><i class="fa-brands fa-weixin" style="width:30px; color:var(--fg)"></i> <a href="https://mp.weixin.qq.com/s/52F9KraeO4yzAiABJC4x0w" target="_blank" style="color:var(--muted); text-decoration:none;">微信公众号: 生态学家</a></div>
+    </div>
+  </header>
+
+  <!-- Research：研究兴趣（可直接修改此处文本） -->
+<section id="research">
+  <h2>Research Interests</h2>
+  <div style="display: flex; flex-direction: column; gap: 20px;">
+    <div>
+      <strong style="color: var(--fg);">全球变化生态学</strong>
+      <p style="color: var(--muted); margin: 4px 0 0 0;">气候变暖 •  干旱 •  干湿交替 •  冻融循环 •  热融滑塌</p>
+    </div>
+    <div>
+      <strong style="color: var(--fg);">陆地生态系统碳循环</strong>
+      <p style="color: var(--muted); margin: 4px 0 0 0;">土壤呼吸 •  森林碳循环 • 冻土碳稳定 •  凋落物分解</p>
+    </div>
+    <div>
+      <strong style="color: var(--fg);">土壤微生物生态学</strong>
+      <p style="color: var(--muted); margin: 4px 0 0 0;">温度敏感性 •  热适应 •  碳利用效率 • 恢复力</p>
+    </div>
+    <div>
+      <strong style="color: var(--fg);">数据综合</strong>
+      <p style="color: var(--muted); margin: 4px 0 0 0;">Meta分析 •  机器学习  • 	Google Earth Engine</p>
+    </div>
+  </div>
+</section>
+
+  <!-- Experience：工作/项目经历，增删条目请复制 .item 模板 -->
+<section id="experience">
+  <h2>Experience</h2>
+  <div style="display: flex; flex-direction: column; gap: 24px;">
+    <div class="item">
+      <div class="item-row" style="display:flex; justify-content:space-between; align-items: baseline;">
+        <strong>复旦大学</strong>
+        <span style="color:var(--muted); font-size: 0.95rem;">2023 – 今</span>
+      </div>
+      <div style="color:var(--muted)">博士后</div>
+    </div>
+
+    <div class="item">
+      <div class="item-row" style="display:flex; justify-content:space-between; align-items: baseline;">
+        <strong>
+            科学自媒体 &lt;
+            <a href="https://mp.weixin.qq.com/s/52F9KraeO4yzAiABJC4x0w" target="_blank"
+             style="color:inherit; text-decoration:none; transition: color 0.2s, text-decoration 0.15s;"
+             onmouseover="this.style.color='var(--link-color)'; this.style.textDecoration='underline'; this.style.textUnderlineOffset='4px';"
+             onmouseout="this.style.color='inherit'; this.style.textDecoration='none';">
+            生态学家
+          </a>
+          &gt;
+        </strong>
+        <span style="color:var(--muted); font-size: 0.95rem;">2019 – 今</span>
+      </div>
+      <div style="color:var(--muted)">联合创办 & 运营</div>
+    </div>
+
+    <div class="item">
+      <div class="item-row" style="display:flex; justify-content:space-between; align-items: baseline;">
+        <strong>南方科技大学</strong>
+        <span style="color:var(--muted); font-size: 0.95rem;">2018</span>
+      </div>
+      <div style="color:var(--muted)">环境学院 · 科研助理</div>
+    </div>
+
+    <div class="item">
+      <div class="item-row" style="display:flex; justify-content:space-between; align-items: baseline;">
+        <strong>MDPI (北京)</strong>
+        <span style="color:var(--muted); font-size: 0.95rem;">2017</span>
+      </div>
+      <div style="color:var(--muted)">Remote Sensing 编辑部 · 助理编辑</div>
+    </div>
+  </div>
+</section>
+
+  <!-- Education：教育经历（保留导师链接以便引用） -->
+<section id="education">
+  <h2>Education</h2>
+  <div style="display: flex; flex-direction: column; gap: 24px;">
+    <div class="item">
+      <div class="item-row" style="display:flex; justify-content:space-between; align-items: baseline;">
+        <strong>复旦大学</strong>
+        <span style="color:var(--muted); font-size: 0.95rem;">2018 – 2023</span>
+      </div>
+      <div style="color:var(--muted)">
+        土壤生态学 · 博士 (导师: <a href="https://ecology.fudan.edu.cn/f0/6c/c30054a323692/page.htm" target="_blank" style="color: var(--link-color); text-decoration: none;">聂明</a>)
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-row" style="display:flex; justify-content:space-between; align-items: baseline;">
+        <strong>Lund University</strong>
+        <span style="color:var(--muted); font-size: 0.95rem;">2020 – 2021</span>
+      </div>
+      <div style="color:var(--muted)">
+        微生物生态学 · 联合培养博士 (导师: <a href="https://portal.research.lu.se/en/persons/johannes-rousk" target="_blank" style="color: var(--link-color); text-decoration: none;">Johannes Rousk</a>)
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-row" style="display:flex; justify-content:space-between; align-items: baseline;">
+        <strong>中国科学院大学 (沈阳应用生态研究所)</strong>
+        <span style="color:var(--muted); font-size: 0.95rem;">2014 – 2017</span>
+      </div>
+      <div style="color:var(--muted)">
+        土壤生态学 · 硕士 (导师: <a href="http://teacher.fafu.edu.cn/lxy/hyl/list.htm" target="_blank" style="color: var(--link-color); text-decoration: none;">胡亚林</a>)
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-row" style="display:flex; justify-content:space-between; align-items: baseline;">
+        <strong>江西农业大学</strong>
+        <span style="color:var(--muted); font-size: 0.95rem;">2010 – 2014</span>
+      </div>
+      <div style="color:var(--muted)">林学 · 本科</div>
+    </div>
+  </div>
+</section>
+
+  <section id="publications">
+    <h2>Publications</h2>
+    <h3 class="featured-header"><i class="fa-solid fa-feather-pointed"></i> Featured</h3>
+    <div id="selected-list" class="featured-list"><em>Loading...</em></div>
+    <div style="text-align: center;"><button id="toggle-btn" onclick="toggleFull()" class="toggle-btn">View All Publications ↓</button></div>
+    <div id="full-section" style="display:none; margin-top:40px;">
+      <h3>All Publications</h3>
+      <div id="loading-status" style="margin-bottom: 10px; color:var(--muted)"></div>
+      <div id="timeline" class="timeline"></div>
+      <div id="full-list" style="min-height: 500px;"></div>
+    </div>
+  </section>
+</div>
+
+<script>
+// --- 原有逻辑代码保持不变 ---
+const ORCID_ID = "0000-0002-7175-741X";
+const FEATURED_DOIS = ["10.1111/gcb.17040", "10.1111/gcb.16448", "10.1016/j.soilbio.2023.108966", "10.1016/j.soilbio.2018.09.018", "10.1038/s41559-022-01944-3"].map(d => d.toLowerCase());
+const NAME_TO_HIGHLIGHT = ["Jintao Li", "Jin-Tao Li", "Jin‐Tao Li", "Jin‐Tao Lí", "黎锦涛 LI Jintao"];
+
+const nav = document.getElementById('main-nav');
+const navUnderline = document.getElementById('nav-underline');
+const navLinks = document.querySelectorAll('.nav-link');
+const scrollTargets = document.querySelectorAll('header, section');
+
+function moveUnderline(activeLink) {
+  if(!activeLink) return;
+  navUnderline.style.width = `${activeLink.offsetWidth}px`;
+  navUnderline.style.left = `${activeLink.offsetLeft}px`;
+}
+
+window.addEventListener('scroll', () => {
+  if (window.scrollY > 30) nav.classList.add('scrolled');
+  else nav.classList.remove('scrolled');
+  let current = "about";
+  scrollTargets.forEach(s => {
+    const top = s.offsetTop - 180;
+    if (window.scrollY >= top) current = s.getAttribute('id');
+  });
+  navLinks.forEach(link => {
+    link.classList.remove('active');
+    if (link.getAttribute('href') === `#${current}`) {
+      link.classList.add('active');
+      moveUnderline(link);
+    }
+  });
+});
+
+function toggleTheme() {
+  const html = document.documentElement;
+  const icon = document.getElementById('theme-icon');
+  icon.classList.remove('mode-active', 'mode-enter');
+  icon.classList.add('mode-exit');
+  setTimeout(() => {
+    if (html.dataset.theme === 'dark') {
+      html.dataset.theme = '';
+      icon.className = 'fa-solid fa-moon mode-enter';
+    } else {
+      html.dataset.theme = 'dark';
+      icon.className = 'fa-solid fa-sun mode-enter';
+    }
+    void icon.offsetWidth;
+    icon.classList.remove('mode-enter');
+    icon.classList.add('mode-active');
+    moveUnderline(document.querySelector('.nav-link.active'));
+  }, 250);
+}
+
+let pubs = [], years = [], isFullLoaded = false;
+
+async function fetchAuthors(doi) {
+  try {
+    const r = await fetch(`https://api.crossref.org/works/${doi}`);
+    const j = await r.json();
+    return (j.message.author || []).map(a => `${a.given} ${a.family}`).join(", ");
+  } catch { return "Authors unavailable"; }
+}
+
+function highlightAuthors(text) {
+  if (!text) return "";
+  let r = text;
+  NAME_TO_HIGHLIGHT.forEach(n => {
+    const regex = new RegExp(`(${n})`, "gi");
+    r = r.replace(regex, `<span style="color:var(--fg); font-weight:700;">$1</span>`);
+  });
+  return r;
+}
+
+function createPubHTML(p, isAllList = false) {
+  const badge = (isAllList && p.featured) ? `<span class="featured-badge"><i class="fa-solid fa-star"></i> Featured</span>` : '';
+  return `
+    <div class="pub">
+      <div class="pub-year">${p.year} ${badge}</div>
+      <div class="pub-title">${p.title}</div>
+      <div class="pub-authors">${p.authors || 'Fetching...'}</div>
+      <div class="pub-journal">${p.journal}</div>
+      <div class="pub-doi"><a href="https://doi.org/${p.doi}" target="_blank">https://doi.org/${p.doi}</a></div>
+    </div>`;
+}
+
+async function load() {
+  const r = await fetch(`https://pub.orcid.org/v3.0/${ORCID_ID}/works`, { headers: { "Accept": "application/json" } });
+  const j = await r.json();
+  j.group.forEach(g => {
+    const w = g["work-summary"][0];
+    const doiObj = (w["external-ids"]?.["external-id"] || []).find(e => e["external-id-type"] === "doi");
+    if (!doiObj) return;
+    const doi = doiObj["external-id-value"].toLowerCase();
+    const year = w["publication-date"]?.year?.value || "Unpublished";
+    pubs.push({ title: w.title?.title?.value, journal: w["journal-title"]?.value || "", year, doi, featured: FEATURED_DOIS.includes(doi), authors: null });
+    if (year !== "Unpublished" && !years.includes(year)) years.push(year);
+  });
+  years.sort((a, b) => b - a);
+  const featuredPubs = pubs.filter(x => x.featured);
+  featuredPubs.sort((a, b) => FEATURED_DOIS.indexOf(a.doi) - FEATURED_DOIS.indexOf(b.doi));
+  const selectedBox = document.getElementById("selected-list");
+  selectedBox.innerHTML = "";
+  for (let p of featuredPubs) {
+    p.authors = highlightAuthors(await fetchAuthors(p.doi));
+    selectedBox.innerHTML += createPubHTML(p, false);
+  }
+}
+
+async function toggleFull() {
+  const sec = document.getElementById("full-section");
+  const btn = document.getElementById("toggle-btn");
+  if (sec.style.display === "none") {
+    sec.style.display = "block"; btn.innerText = "Hide Publication List ↑";
+    if (!isFullLoaded) { renderTimeline(); await fetchAllAuthorsOnce(); isFullLoaded = true; }
+    renderList(null);
+  } else {
+    sec.style.display = "none"; btn.innerText = "View All Publications ↓";
+  }
+}
+
+async function fetchAllAuthorsOnce() {
+  const status = document.getElementById("loading-status");
+  status.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Loading metadata...';
+  const tasks = pubs.filter(p => !p.authors).map(async p => {
+    const raw = await fetchAuthors(p.doi);
+    p.authors = highlightAuthors(raw);
+  });
+  if (tasks.length > 0) await Promise.all(tasks);
+  status.innerHTML = "";
+}
+
+function renderList(filterYear) {
+  const box = document.getElementById("full-list");
+  const filtered = pubs.filter(p => !filterYear || p.year === filterYear);
+  box.innerHTML = filtered.map(p => createPubHTML(p, true)).join("");
+}
+
+function renderTimeline() {
+  const t = document.getElementById("timeline");
+  t.innerHTML = `<span class="active" onclick="filterYear(null, event)">All</span>`;
+  years.forEach(y => { t.innerHTML += `<span onclick="filterYear('${y}', event)">${y}</span>`; });
+}
+
+function filterYear(y, event) {
+  document.querySelectorAll(".timeline span").forEach(s => s.classList.remove("active"));
+  event.target.classList.add("active");
+  renderList(y);
+}
+
+window.onload = () => {
+  moveUnderline(document.querySelector('.nav-link.active'));
+  load();
+};
+</script>
+</body>
+</html>
